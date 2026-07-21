@@ -88,6 +88,22 @@ final class BridgeRoutesTest extends TestCase
             ->assertJsonPath('error.code', 'origin_mismatch');
     }
 
+    public function test_origin_validation_fails_closed_when_no_allowed_origin_is_configured(): void
+    {
+        config()->set('livewire-bridge.allowed_origin', null);
+        config()->set('app.url', '');
+
+        $this->withSession(['_token' => 'valid-token'])
+            ->postJson('/livewire-bridge/render', [
+                'components' => [$this->bridgeComponent()],
+            ], [
+                'Origin' => 'https://example.test',
+                'X-CSRF-TOKEN' => 'valid-token',
+            ])
+            ->assertForbidden()
+            ->assertJsonPath('error.code', 'origin_not_configured');
+    }
+
     public function test_origin_comparison_ignores_app_url_path_and_includes_default_port(): void
     {
         config()->set('livewire-bridge.allowed_origin', 'https://example.test/path');

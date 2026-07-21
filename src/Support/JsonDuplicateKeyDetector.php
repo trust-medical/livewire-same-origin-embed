@@ -6,6 +6,12 @@ namespace TrustMedical\SameOriginLivewireBridge\Support;
 
 final class JsonDuplicateKeyDetector
 {
+    /**
+     * Bodies nested deeper than this are reported as rejecting (true) so
+     * adversarial input cannot exhaust the call stack of the scanner.
+     */
+    public const MAX_DEPTH = 64;
+
     public static function containsDuplicateKeys(string $json): bool
     {
         $length = strlen($json);
@@ -17,11 +23,15 @@ final class JsonDuplicateKeyDetector
             return false;
         }
 
-        return self::scanValue($json, $index, $length);
+        return self::scanValue($json, $index, $length, 0);
     }
 
-    private static function scanValue(string $json, int &$index, int $length): bool
+    private static function scanValue(string $json, int &$index, int $length, int $depth): bool
     {
+        if ($depth > self::MAX_DEPTH) {
+            return true;
+        }
+
         self::skipWhitespace($json, $index, $length);
 
         if ($index >= $length) {
@@ -29,14 +39,14 @@ final class JsonDuplicateKeyDetector
         }
 
         return match ($json[$index]) {
-            '{' => self::scanObject($json, $index, $length),
-            '[' => self::scanArray($json, $index, $length),
+            '{' => self::scanObject($json, $index, $length, $depth + 1),
+            '[' => self::scanArray($json, $index, $length, $depth + 1),
             '"' => self::scanString($json, $index, $length) === null ? false : false,
             default => self::scanPrimitive($json, $index, $length),
         };
     }
 
-    private static function scanObject(string $json, int &$index, int $length): bool
+    private static function scanObject(string $json, int &$index, int $length, int $depth): bool
     {
         $seen = [];
         $index++;
@@ -69,7 +79,7 @@ final class JsonDuplicateKeyDetector
 
             $index++;
 
-            if (self::scanValue($json, $index, $length)) {
+            if (self::scanValue($json, $index, $length, $depth)) {
                 return true;
             }
 
@@ -91,7 +101,7 @@ final class JsonDuplicateKeyDetector
         return false;
     }
 
-    private static function scanArray(string $json, int &$index, int $length): bool
+    private static function scanArray(string $json, int &$index, int $length, int $depth): bool
     {
         $index++;
         self::skipWhitespace($json, $index, $length);
@@ -103,7 +113,7 @@ final class JsonDuplicateKeyDetector
         }
 
         while ($index < $length) {
-            if (self::scanValue($json, $index, $length)) {
+            if (self::scanValue($json, $index, $length, $depth)) {
                 return true;
             }
 

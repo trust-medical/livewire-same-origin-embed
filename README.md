@@ -109,6 +109,14 @@ The default selector is `livewire-bridge, [data-livewire-bridge]`. Legacy Wire E
 
 CORS response headers are not emitted. Do not add CORS for these routes.
 
+If neither `livewire-bridge.allowed_origin` nor `app.url` is configured, requests carrying an `Origin` header are rejected with `origin_not_configured`; the middleware never derives the expected origin from the incoming request.
+
+### Integrator Responsibilities
+
+- Register only components intended for public same-origin embedding. Any page on the same origin can render a registered component in the visitor's session context, so do not register components that expose account-specific or otherwise sensitive state.
+- Component params originate from the host page DOM. Blade's `{{ }}` escaping keeps them safe; never echo params with `{!! !!}` or otherwise emit them unescaped inside a registered component.
+- Behind a reverse proxy or CDN, configure Laravel's trusted proxies. The bridge rate limiter keys on the client IP; without trusted proxy configuration all clients share the proxy's IP and a single rate-limit bucket, so one client can exhaust the shared limit.
+
 ## Lifecycle Events
 
 The client dispatches privacy-safe events on `document`:

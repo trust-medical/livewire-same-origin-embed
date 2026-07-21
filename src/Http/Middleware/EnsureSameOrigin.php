@@ -26,9 +26,13 @@ final class EnsureSameOrigin
             return $next($request);
         }
 
-        $expected = $this->canonicalOrigin(
-            (string) (config('livewire-bridge.allowed_origin') ?: config('app.url') ?: $request->getSchemeAndHttpHost())
-        );
+        $configured = (string) (config('livewire-bridge.allowed_origin') ?: config('app.url') ?: '');
+
+        if ($configured === '') {
+            return $this->forbidden('origin_not_configured');
+        }
+
+        $expected = $this->canonicalOrigin($configured);
 
         if ($expected === null || $this->canonicalOrigin($origin) !== $expected) {
             return $this->forbidden('origin_mismatch');
