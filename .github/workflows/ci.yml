@@ -21,9 +21,8 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
-      - run: composer require laravel/framework:${{ matrix.laravel }} livewire/livewire:${{ matrix.livewire }} --no-interaction --no-update
-      - run: composer install --prefer-dist --no-interaction
       - run: composer validate --strict
+      - run: composer update laravel/framework:${{ matrix.laravel }} livewire/livewire:${{ matrix.livewire }} --with-all-dependencies --prefer-dist --no-interaction
       - run: composer test
       - run: composer analyse
       - run: composer audit
