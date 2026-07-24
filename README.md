@@ -8,9 +8,9 @@ It does not support cross-origin embeds, CORS, iframe mounting, third-party cook
 
 Only CI-verified combinations are supported.
 
-| Package version | PHP | Laravel | Livewire |
-| --------------- | --- | ------- | -------- |
-| 0.1.x           | 8.4 | 12.x    | 4.3.x    |
+| Package version | PHP      | Laravel | Livewire |
+| --------------- | -------- | ------- | -------- |
+| 0.1.x           | 8.3, 8.4 | 12.x    | 4.3.x    |
 
 Livewire 4 serves JavaScript from hash-based routes such as `/livewire-{hash}/livewire.js` and uses `@livewireScripts` to include its JavaScript and bundled Alpine runtime. This package renders `@livewireScripts` on the Laravel side so the installed Livewire version is used. `@livewireScriptConfig` is for manually bundled Livewire/Alpine builds and is intentionally not used here.
 

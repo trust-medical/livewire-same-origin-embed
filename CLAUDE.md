@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `trust-medical/same-origin-livewire-bridge` embeds Laravel Livewire 4 components into same-origin, non-Laravel pages (e.g., WordPress served from the same scheme/host/port). It is deliberately **same-origin only** — no CORS, no iframes, no postMessage. It is derived from `wire-elements/wire-extender` (MIT) with the security model rebuilt; `UPSTREAM.md` documents what was kept vs. changed. Keep that attribution (LICENSE + UPSTREAM.md) intact.
 
-Only CI-verified combinations are supported: 0.1.x = PHP 8.4 / Laravel 12 / Livewire 4.3.
+Only CI-verified combinations are supported: 0.1.x = PHP 8.3 and 8.4 / Laravel 12 / Livewire 4.3.
 
 ## Commands
 
