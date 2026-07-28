@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 - 2026-07-28
+
+- Pinned the transitive `brace-expansion` dependency to `5.0.8` via npm `overrides` to resolve a high-severity DoS advisory (GHSA-mh99-v99m-4gvg) flagged by `npm audit` in CI. No runtime code changed; `dist/livewire-bridge.js` is unaffected.
+
 ## 0.2.0 - 2026-07-28
 
 - The bridge startup sequence (`GET /livewire-bridge/session` → `POST /livewire-bridge/render`) now recovers from an expired CSRF token/session (HTTP 419) instead of dead-ending on a generic error: it shows a `confirm()` dialog and reloads the page if the visitor accepts, matching Livewire's own session-expired recovery. Shown at most once per page load.
