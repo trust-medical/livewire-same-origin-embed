@@ -13,6 +13,10 @@ final class SessionController
     {
         return response()->json([
             'csrf_token' => $request->session()->token(),
+            'config' => [
+                'sessionExpiredMessage' => config('livewire-bridge.session_expired_message'),
+                'confirmOnSessionExpired' => (bool) config('livewire-bridge.confirm_on_session_expired', true),
+            ],
         ]);
     }
 }

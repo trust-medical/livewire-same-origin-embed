@@ -13,8 +13,21 @@ final class BridgeRoutesTest extends TestCase
         $response = $this->getJson('/livewire-bridge/session');
 
         $response->assertOk()
-            ->assertJsonStructure(['csrf_token']);
+            ->assertJsonStructure(['csrf_token', 'config' => ['sessionExpiredMessage', 'confirmOnSessionExpired']])
+            ->assertJsonPath('config.sessionExpiredMessage', config('livewire-bridge.session_expired_message'))
+            ->assertJsonPath('config.confirmOnSessionExpired', true);
         $response->assertCookie(config('session.cookie'));
+    }
+
+    public function test_session_route_reflects_custom_session_expired_config(): void
+    {
+        config()->set('livewire-bridge.session_expired_message', 'セッションの有効期限が切れました。再読み込みしますか?');
+        config()->set('livewire-bridge.confirm_on_session_expired', false);
+
+        $this->getJson('/livewire-bridge/session')
+            ->assertOk()
+            ->assertJsonPath('config.sessionExpiredMessage', 'セッションの有効期限が切れました。再読み込みしますか?')
+            ->assertJsonPath('config.confirmOnSessionExpired', false);
     }
 
     public function test_render_route_requires_csrf_token(): void

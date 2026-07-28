@@ -111,6 +111,26 @@ CORS response headers are not emitted. Do not add CORS for these routes.
 
 If neither `livewire-bridge.allowed_origin` nor `app.url` is configured, requests carrying an `Origin` header are rejected with `origin_not_configured`; the middleware never derives the expected origin from the incoming request.
 
+### Session Expiry During Startup
+
+If the CSRF token has expired by the time `POST /livewire-bridge/render` is called (HTTP 419), the client shows a `confirm()` dialog and reloads the page if the visitor accepts, mirroring Livewire's own session-expired recovery for later `Livewire.start()` traffic. The dialog is shown at most once per page load.
+
+The message and whether the dialog appears at all are controlled server-side and delivered to the client in the `GET /livewire-bridge/session` response:
+
+```php
+// config/livewire-bridge.php
+'session_expired_message' => "This page has expired.\nWould you like to refresh the page?",
+'confirm_on_session_expired' => true,
+```
+
+To localize the message (for example, for a Japanese-language site):
+
+```php
+'session_expired_message' => "セッションの有効期限が切れました。\nページを再読み込みしますか?",
+```
+
+These can also be overridden per host page via `data-session-expired-message` and `data-confirm-on-session-expired="false"` on the bridge `<script>` tag; the value returned by the session endpoint takes precedence whenever it is set.
+
 ### Integrator Responsibilities
 
 - Register only components intended for public same-origin embedding. Any page on the same origin can render a registered component in the visitor's session context, so do not register components that expose account-specific or otherwise sensitive state.

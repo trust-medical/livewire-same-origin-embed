@@ -140,11 +140,130 @@ describe('same-origin livewire bridge client', () => {
       .mockResolvedValueOnce(jsonResponse({ csrf_token: 'csrf-token' }))
       .mockResolvedValueOnce(jsonResponse({ error: { code: 'origin_mismatch' } }, 403));
     vi.stubGlobal('fetch', fetchMock);
+    const confirmSpy = vi.spyOn(window, 'confirm');
 
     const { initBridge } = await loadBridge();
 
     await expect(initBridge()).rejects.toMatchObject({ code: 'origin_mismatch', status: 403 });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(confirmSpy).not.toHaveBeenCalled();
+  });
+
+  it('prompts to reload when the session expires (419) and reloads on confirm', async () => {
+    document.body.innerHTML = '<livewire-bridge data-component="reservation"></livewire-bridge>';
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ csrf_token: 'csrf-token', config: {} }))
+        .mockResolvedValueOnce(jsonResponse({ error: { code: 'render_failed' } }, 419)),
+    );
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const reloadMock = vi.fn();
+    window.__sameOriginLivewireBridge = {
+      started: false,
+      loadedAssets: new Set(),
+      reloadPage: reloadMock,
+    };
+
+    const { initBridge } = await loadBridge();
+
+    await expect(initBridge()).rejects.toMatchObject({ status: 419 });
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'This page has expired.\nWould you like to refresh the page?',
+    );
+    expect(reloadMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reload the page when the session-expired confirm is dismissed', async () => {
+    document.body.innerHTML = '<livewire-bridge data-component="reservation"></livewire-bridge>';
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ csrf_token: 'csrf-token', config: {} }))
+        .mockResolvedValueOnce(jsonResponse({ error: { code: 'render_failed' } }, 419)),
+    );
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const reloadMock = vi.fn();
+    window.__sameOriginLivewireBridge = {
+      started: false,
+      loadedAssets: new Set(),
+      reloadPage: reloadMock,
+    };
+
+    const { initBridge } = await loadBridge();
+
+    await expect(initBridge()).rejects.toMatchObject({ status: 419 });
+    expect(reloadMock).not.toHaveBeenCalled();
+  });
+
+  it('uses the session-expired message returned by the server config', async () => {
+    document.body.innerHTML = '<livewire-bridge data-component="reservation"></livewire-bridge>';
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse({
+            csrf_token: 'csrf-token',
+            config: {
+              sessionExpiredMessage: 'セッションの有効期限が切れました。再読み込みしますか?',
+            },
+          }),
+        )
+        .mockResolvedValueOnce(jsonResponse({ error: { code: 'render_failed' } }, 419)),
+    );
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    const { initBridge } = await loadBridge();
+
+    await expect(initBridge()).rejects.toMatchObject({ status: 419 });
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'セッションの有効期限が切れました。再読み込みしますか?',
+    );
+  });
+
+  it('only prompts once even if initBridge is retried after a session expiry', async () => {
+    document.body.innerHTML = '<livewire-bridge data-component="reservation"></livewire-bridge>';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url === '/livewire-bridge/session') {
+          return Promise.resolve(jsonResponse({ csrf_token: 'csrf-token', config: {} }));
+        }
+
+        return Promise.resolve(jsonResponse({ error: { code: 'render_failed' } }, 419));
+      }),
+    );
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    const { initBridge } = await loadBridge();
+
+    await expect(initBridge()).rejects.toMatchObject({ status: 419 });
+    await expect(initBridge()).rejects.toMatchObject({ status: 419 });
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not prompt when confirmOnSessionExpired is disabled', async () => {
+    document.body.innerHTML = '<livewire-bridge data-component="reservation"></livewire-bridge>';
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ csrf_token: 'csrf-token' }))
+        .mockResolvedValueOnce(jsonResponse({ error: { code: 'render_failed' } }, 419)),
+    );
+    const confirmSpy = vi.spyOn(window, 'confirm');
+
+    const { initBridge } = await loadBridge();
+
+    await expect(initBridge({ confirmOnSessionExpired: false })).rejects.toMatchObject({
+      status: 419,
+    });
+    expect(confirmSpy).not.toHaveBeenCalled();
   });
 
   it('deduplicates component assets and rejects external assets by default', async () => {

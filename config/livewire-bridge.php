@@ -59,6 +59,9 @@ return [
 
     'generic_error_message' => 'The embedded form could not be loaded.',
 
+    'session_expired_message' => "This page has expired.\nWould you like to refresh the page?",
+    'confirm_on_session_expired' => true,
+
     'rate_limits' => [
         'session_per_minute' => 60,
         'render_per_minute' => 30,

@@ -22,6 +22,10 @@ type BridgeRenderResponse = {
 
 type BridgeSessionResponse = {
   csrf_token?: string;
+  config?: {
+    sessionExpiredMessage?: string;
+    confirmOnSessionExpired?: boolean;
+  };
 };
 
 type BridgeOptions = {
@@ -29,6 +33,8 @@ type BridgeOptions = {
   sessionUrl: string;
   renderUrl: string;
   errorMessage: string;
+  sessionExpiredMessage: string;
+  confirmOnSessionExpired: boolean;
   sessionTimeoutMs: number;
   renderTimeoutMs: number;
   retryCount: number;
@@ -42,6 +48,8 @@ type BridgeState = {
   started: boolean;
   livewireScript?: Promise<void>;
   loadedAssets: Set<string>;
+  sessionExpiredPromptShown?: boolean;
+  reloadPage: () => void;
 };
 
 declare global {
@@ -63,6 +71,8 @@ const DEFAULT_OPTIONS: BridgeOptions = {
   sessionUrl: '/livewire-bridge/session',
   renderUrl: '/livewire-bridge/render',
   errorMessage: 'The embedded form could not be loaded.',
+  sessionExpiredMessage: 'This page has expired.\nWould you like to refresh the page?',
+  confirmOnSessionExpired: true,
   sessionTimeoutMs: 10000,
   renderTimeoutMs: 15000,
   retryCount: 1,
@@ -85,6 +95,7 @@ function state(): BridgeState {
   window.__sameOriginLivewireBridge ??= {
     started: false,
     loadedAssets: new Set<string>(),
+    reloadPage: () => window.location.reload(),
   };
 
   return window.__sameOriginLivewireBridge;
@@ -100,6 +111,11 @@ function readOptions(overrides: Partial<BridgeOptions> = {}): BridgeOptions {
     sessionUrl: dataset.sessionUrl ?? DEFAULT_OPTIONS.sessionUrl,
     renderUrl: dataset.renderUrl ?? DEFAULT_OPTIONS.renderUrl,
     errorMessage: dataset.errorMessage ?? DEFAULT_OPTIONS.errorMessage,
+    sessionExpiredMessage: dataset.sessionExpiredMessage ?? DEFAULT_OPTIONS.sessionExpiredMessage,
+    confirmOnSessionExpired: booleanOption(
+      dataset.confirmOnSessionExpired,
+      DEFAULT_OPTIONS.confirmOnSessionExpired,
+    ),
     sessionTimeoutMs: numberOption(dataset.sessionTimeoutMs, DEFAULT_OPTIONS.sessionTimeoutMs),
     renderTimeoutMs: numberOption(dataset.renderTimeoutMs, DEFAULT_OPTIONS.renderTimeoutMs),
     retryCount: numberOption(dataset.retryCount, DEFAULT_OPTIONS.retryCount),
@@ -253,6 +269,12 @@ async function runBridge(options: BridgeOptions): Promise<void> {
       );
     }
 
+    const sessionConfig = session.config ?? {};
+    options.sessionExpiredMessage =
+      sessionConfig.sessionExpiredMessage ?? options.sessionExpiredMessage;
+    options.confirmOnSessionExpired =
+      sessionConfig.confirmOnSessionExpired ?? options.confirmOnSessionExpired;
+
     dispatch('livewire-bridge:session-ready', safeDetail(components, startedAt));
 
     const rendered = await requestWithRetry<BridgeRenderResponse>(
@@ -304,6 +326,8 @@ async function runBridge(options: BridgeOptions): Promise<void> {
       componentCount: mounts.length,
       durationMs: Math.round(performance.now() - startedAt),
     });
+
+    maybePromptSessionReload(bridgeError, options);
 
     throw bridgeError;
   }
@@ -580,6 +604,24 @@ function markMountsAsError(
     mount.element.setAttribute('data-livewire-bridge-state', 'error');
     mount.element.textContent =
       mount.element.dataset.livewireBridgeErrorMessage ?? options.errorMessage;
+  }
+}
+
+function maybePromptSessionReload(error: BridgeClientError, options: BridgeOptions): void {
+  if (error.status !== 419 || !options.confirmOnSessionExpired) {
+    return;
+  }
+
+  const bridgeState = state();
+
+  if (bridgeState.sessionExpiredPromptShown) {
+    return;
+  }
+
+  bridgeState.sessionExpiredPromptShown = true;
+
+  if (window.confirm(options.sessionExpiredMessage)) {
+    bridgeState.reloadPage();
   }
 }
 
