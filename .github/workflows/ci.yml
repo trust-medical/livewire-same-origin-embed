@@ -13,8 +13,13 @@ jobs:
     strategy:
       matrix:
         php: ['8.3', '8.4']
-        laravel: ['12.*']
+        laravel: ['12.*', '13.*']
         livewire: ['4.3.*']
+        include:
+          - laravel: '12.*'
+            testbench: '^10.0'
+          - laravel: '13.*'
+            testbench: '^11.0'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -22,7 +27,7 @@ jobs:
           php-version: ${{ matrix.php }}
           coverage: none
       - run: composer validate --strict
-      - run: composer update laravel/framework:${{ matrix.laravel }} livewire/livewire:${{ matrix.livewire }} --with-all-dependencies --prefer-dist --no-interaction
+      - run: composer update laravel/framework:${{ matrix.laravel }} orchestra/testbench:${{ matrix.testbench }} livewire/livewire:${{ matrix.livewire }} --with-all-dependencies --prefer-dist --no-interaction
       - run: composer test
       - run: composer analyse
       - run: composer audit

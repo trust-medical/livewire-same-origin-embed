@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use TrustMedical\SameOriginLivewireBridge\Http\Middleware\EnsureSameOrigin;
 
@@ -19,8 +20,10 @@ return [
         'throttle:livewire-bridge-session',
     ],
 
+    // Laravel 13 renamed the CSRF middleware to PreventRequestForgery (ValidateCsrfToken stays as a
+    // deprecated alias). Laravel 12 only has ValidateCsrfToken, so pick whichever class exists.
     'render_middleware' => [
-        ValidateCsrfToken::class,
+        class_exists(PreventRequestForgery::class) ? PreventRequestForgery::class : ValidateCsrfToken::class,
         'throttle:livewire-bridge-render',
         EnsureSameOrigin::class,
     ],

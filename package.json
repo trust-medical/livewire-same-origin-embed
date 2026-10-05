@@ -1,6 +1,6 @@
 {
   "name": "@trust-medical/same-origin-livewire-bridge",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "description": "Same-origin-only Livewire bridge client.",

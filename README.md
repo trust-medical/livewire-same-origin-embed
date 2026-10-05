@@ -8,9 +8,10 @@ It does not support cross-origin embeds, CORS, iframe mounting, third-party cook
 
 Only CI-verified combinations are supported.
 
-| Package version | PHP      | Laravel | Livewire |
-| --------------- | -------- | ------- | -------- |
-| 0.1.x           | 8.3, 8.4 | 12.x    | 4.3.x    |
+| Package version | PHP      | Laravel    | Livewire |
+| --------------- | -------- | ---------- | -------- |
+| 0.1.x, 0.2.0–0.2.1 | 8.3, 8.4 | 12.x    | 4.3.x    |
+| 0.2.2+          | 8.3, 8.4 | 12.x, 13.x | 4.3.x    |
 
 Livewire 4 serves JavaScript from hash-based routes such as `/livewire-{hash}/livewire.js` and uses `@livewireScripts` to include its JavaScript and bundled Alpine runtime. This package renders `@livewireScripts` on the Laravel side so the installed Livewire version is used. `@livewireScriptConfig` is for manually bundled Livewire/Alpine builds and is intentionally not used here.
 
@@ -96,7 +97,7 @@ The default selector is `livewire-bridge, [data-livewire-bridge]`. Legacy Wire E
 1. Client calls `GET /livewire-bridge/session` with `credentials: 'same-origin'`.
 2. Laravel `web` middleware starts the session and returns a CSRF token.
 3. Client calls `POST /livewire-bridge/render` with `X-CSRF-TOKEN`.
-4. Laravel's normal CSRF middleware validates the request.
+4. Laravel's CSRF middleware validates the request (`PreventRequestForgery` on Laravel 13, `ValidateCsrfToken` on Laravel 12).
 5. `EnsureSameOrigin` verifies the `Origin` header exactly by scheme, host, and port.
 6. The server renders registered Livewire components and returns HTML, component assets, and Livewire script information.
 7. The client inserts HTML, loads assets once, loads Livewire once, then calls `Livewire.start()` once.
@@ -110,6 +111,26 @@ The default selector is `livewire-bridge, [data-livewire-bridge]`. Legacy Wire E
 CORS response headers are not emitted. Do not add CORS for these routes.
 
 If neither `livewire-bridge.allowed_origin` nor `app.url` is configured, requests carrying an `Origin` header are rejected with `origin_not_configured`; the middleware never derives the expected origin from the incoming request.
+
+### Laravel 13: Request Forgery Protection and `Sec-Fetch-Site`
+
+Laravel 13 renamed the CSRF middleware to `PreventRequestForgery` (`ValidateCsrfToken` / `VerifyCsrfToken` remain as deprecated aliases) and added request-origin verification via the browser-set `Sec-Fetch-Site` header. The default `render_middleware` uses `PreventRequestForgery` when it exists and `ValidateCsrfToken` otherwise, so the same config works on Laravel 12 and 13. A published config that still names `ValidateCsrfToken` keeps working on Laravel 13.
+
+How the bridge behaves (covered by `tests/Feature/SecFetchSiteTest.php`):
+
+| `Sec-Fetch-Site` | Laravel 12 | Laravel 13 (defaults) |
+| ---------------- | ---------- | --------------------- |
+| `same-origin` (WordPress page on the same origin) | token required | accepted by the framework; token not required |
+| `same-site`, `cross-site`, `none`, absent | token required | token required |
+
+The bridge client always sends `X-CSRF-TOKEN`, so a valid request is accepted in every case. `EnsureSameOrigin` runs independently and still requires an exact `Origin` match, so a request with `Sec-Fetch-Site: same-origin` but a foreign `Origin` is rejected with 403.
+
+The framework-level switches are available to the consuming app and do not change bridge behaviour for same-origin pages:
+
+- `PreventRequestForgery::useOriginOnly()` (or `$middleware->preventRequestForgery(originOnly: true)`): non-same-origin requests are rejected with 403. Same-origin embeds keep working.
+- `PreventRequestForgery::allowSameSite()`: also trusts `same-site`. The bridge still enforces same-origin through `EnsureSameOrigin`.
+
+To exclude or replace the CSRF middleware for these routes, edit `livewire-bridge.render_middleware`. Never remove it (see the security invariants).
 
 ### Session Expiry During Startup
 

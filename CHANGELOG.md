@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 - 2026-10-05
+
+- Added Laravel 13 support alongside Laravel 12 (`illuminate/*` `^12.0|^13.0`; tested with Testbench 10 and 11, PHP 8.3/8.4, Livewire 4.3).
+- The default `render_middleware` and the route fallback now use `PreventRequestForgery` when available (Laravel 13) and `ValidateCsrfToken` otherwise (Laravel 12). A published config naming `ValidateCsrfToken` continues to work. Config keys are unchanged.
+- Added `Sec-Fetch-Site` tests (`same-origin`, `same-site`, `cross-site`, `none`, absent, plus `useOriginOnly` / `allowSameSite`). Bridge endpoints are not rejected by Laravel 13's origin verification with default settings. No runtime behaviour changed.
+- CI matrix now covers Laravel 12 and 13. Dev constraint for PHPUnit widened to `^11.5|^12.0` (required by Testbench 11).
+
 ## 0.2.1 - 2026-07-28
 
 - Pinned the transitive `brace-expansion` dependency to `5.0.8` via npm `overrides` to resolve a high-severity DoS advisory (GHSA-mh99-v99m-4gvg) flagged by `npm audit` in CI. No runtime code changed; `dist/livewire-bridge.js` is unaffected.

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 use TrustMedical\SameOriginLivewireBridge\Http\Controllers\RenderController;
@@ -15,7 +16,7 @@ Route::get('session', SessionController::class)
 Route::post('render', RenderController::class)
     ->name('render')
     ->middleware(config('livewire-bridge.render_middleware', [
-        ValidateCsrfToken::class,
+        class_exists(PreventRequestForgery::class) ? PreventRequestForgery::class : ValidateCsrfToken::class,
         'throttle:livewire-bridge-render',
         EnsureSameOrigin::class,
     ]));
