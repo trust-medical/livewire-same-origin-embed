@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3 - 2026-11-25
+
+- Raised the minimum Livewire version to 4.4.8 (`livewire/livewire` `^4.4.8`). Livewire 4.3.x is affected by GHSA-mhf7-xp6r-6qrc (authorization bypass in `#[Authorize]`) with no 4.3 backport, so 4.3 is no longer supported. Consuming applications on Livewire 4.3 must run `composer update livewire/livewire` (to 4.4.8 or later) when updating this package.
+- CI matrix now tests Livewire 4.4 (PHP 8.3/8.4, Laravel 12/13).
+- Updated the development lock files to resolve Dependabot / `composer audit` / `npm audit` advisories: `laravel/framework`, `livewire/livewire`, `symfony/*` (`http-foundation`, `http-kernel`, `mime`, `routing`, `yaml`), `league/commonmark`, `league/flysystem`, `guzzlehttp/guzzle`, and dev tooling (`vite`, `vitest`, `source-map-js`, `minimatch` via `@typescript-eslint`). Dev constraints raised to `vite` `^8.1.6` and `vitest` `^4.1.12`.
+- No runtime code changed. `dist/livewire-bridge.js` is byte-identical; only `dist/livewire-bridge.js.map` changed (the newer Vite now emits the `names` field).
+
 ## 0.2.2 - 2026-10-05
 
 - Added Laravel 13 support alongside Laravel 12 (`illuminate/*` `^12.0|^13.0`; tested with Testbench 10 and 11, PHP 8.3/8.4, Livewire 4.3).
